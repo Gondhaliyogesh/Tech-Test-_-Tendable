@@ -1,0 +1,117 @@
+package com.tendable.testcase;
+
+import java.util.concurrent.TimeUnit;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import io.github.bonigarcia.wdm.WebDriverManager;
+
+public class TendableTechChallenge {
+
+	private WebDriver driver;
+	private String baseUrl = "https://www.tendable.com";
+
+	@BeforeClass
+	public void setUp() {
+		WebDriverManager.chromedriver().setup();
+		driver = new ChromeDriver();
+		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+		driver.manage().window().maximize();
+		driver.manage().deleteAllCookies();
+	}
+
+	@Test(priority = 1)
+	public void testTopLevelMenusAccessibility() {
+		driver.get(baseUrl);
+
+		String[] menuItems = { "Our Story", "Our Solution", "Why Tendable" };
+
+		for (String menuItem : menuItems) {
+
+			System.out.println(menuItem);
+			WebDriverWait wait = new WebDriverWait(driver, 10); // 10 seconds timeout
+			WebElement menu = wait.until(ExpectedConditions.presenceOfElementLocated(By.linkText(menuItem)));
+			Assert.assertTrue(menu.isDisplayed(), menuItem + " menu is not accessible.");
+		}
+	}
+
+	@Test(priority = 2)
+	public void testRequestDemoButtonPresence() {
+		driver.get(baseUrl);
+
+		String[] menuItems = { "Home", "Our Story", "Our Solution", "Why Tendable" };
+
+		for (String menuItem : menuItems) {
+			WebElement menu = driver.findElement(By.linkText(menuItem));
+			menu.click();
+
+			WebElement requestDemoButton = driver.findElement(By.linkText("Request a Demo"));
+			Assert.assertTrue(requestDemoButton.isDisplayed() && requestDemoButton.isEnabled(),
+					"Request a Demo button is not present or active.");
+
+			driver.navigate().back();
+		}
+	}
+
+	@Test(priority = 3)
+	public void testContactUsFormError() throws InterruptedException {
+		driver.get(baseUrl);
+
+		WebElement contactUsLink = driver.findElement(By.partialLinkText("Contact Us"));
+		contactUsLink.click();
+
+		WebDriverWait wait = new WebDriverWait(driver, 10); // 10 seconds timeout
+
+		WebElement marketingLink = wait.until(ExpectedConditions.presenceOfElementLocated(
+				By.cssSelector("body > div:nth-child(7) > div:nth-child(1) > div:nth-child(1) "
+						+ "> div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(2) > button:nth-child(1)")));
+		marketingLink.click();
+
+		// Fill out the form excluding the "Message" field
+		driver.findElement(By.id("form-input-fullName")).sendKeys("Yogesh");
+		driver.findElement(By.id("form-input-organisationName")).sendKeys("Gondhali");
+		driver.findElement(By.id("form-input-cellPhone")).sendKeys("8007913281");
+		driver.findElement(By.id("form-input-email")).sendKeys("yogeshgondhali03@gmail.com");
+
+		// Select Job Role
+		WebElement jobRole = driver.findElement(By.id("form-input-jobRole"));
+
+		Select sel = new Select(jobRole);
+		sel.selectByVisibleText("Management");
+
+		// Create a JavaScriptExecutor instance
+		JavascriptExecutor js = (JavascriptExecutor) driver;
+
+		// Scroll down the page by 500 pixels
+		js.executeScript("window.scrollBy(0, 800);");
+
+		// I agree
+		driver.findElement(
+				By.xpath("//form[@id='contactMarketingPipedrive-163701']//input[@id='form-input-consentAgreed-0']"))
+				.click();
+
+		Thread.sleep(3000);
+		// Submit the form
+		driver.findElement(By.name("form_page_submit")).submit();
+
+		WebElement errorMessage = driver.findElement(By.cssSelector(".ff-errors"));
+		Assert.assertNotNull(errorMessage, "Error message not displayed.");
+	}
+
+	@AfterClass
+	public void tearDown() {
+		// driver.quit();
+	}
+}
